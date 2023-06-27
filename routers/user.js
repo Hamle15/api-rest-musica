@@ -1,5 +1,6 @@
 // Import dependencies
 const express = require("express");
+const check = require("../middlewares/auth");
 
 // Carge router
 const router = express.Router();
@@ -11,5 +12,6 @@ const UserController = require("../controllers/user");
 router.get("/test-user", UserController.prueba);
 router.post("/register", UserController.register);
 router.post("/login", UserController.login);
+router.get("/profile/:id", check.auth, UserController.profile);
 // Export routes
 module.exports = router;
