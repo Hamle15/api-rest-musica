@@ -2,6 +2,7 @@
 const bcrypt = require("bcrypt");
 const User = require("../Models/User");
 const validate = require("../helpers/validate");
+const jwt = require("../helpers/jwt");
 
 // Test accion
 const prueba = (req, res) => {
@@ -94,8 +95,69 @@ const register = (req, res) => {
   });
 };
 
+const login = (req, res) => {
+  // Take the params of the peticion
+  let params = req.body;
+
+  const email = params.email.trim();
+  const password = params.password.trim();
+
+  // Check if the data get
+  if (!email || !password) {
+    return res.status(400).send({
+      status: "error",
+      message: "Missing data",
+    });
+  }
+
+  // Look email in the bd if the user exist
+  User.findOne({ email: email })
+    .select("+password +role -__v ")
+    .then((user) => {
+      if (!user) {
+        return res.status(404).send({
+          status: "error",
+          message: "Could not find the user",
+        });
+      }
+
+      // Check the password
+      const pdw = bcrypt.compareSync(password, user.password);
+
+      if (!pdw) {
+        return res.status(400).send({
+          status: "error",
+          message: "Mail o password Incorrect",
+        });
+      }
+
+      let identityUser = user.toObject();
+      delete identityUser.password;
+      delete identityUser.role;
+
+      // Get the token
+      const token = jwt.createToken(user);
+
+      // Return token and data user
+      return res.status(200).send({
+        status: "succes",
+        message: "Login succes",
+        user: identityUser,
+        token,
+      });
+    })
+    .catch((error) => {
+      return res.status(404).send({
+        status: "error",
+        message: "Could not find the user",
+        error: error.message,
+      });
+    });
+};
+
 // Export accions
 module.exports = {
   prueba,
   register,
+  login,
 };
