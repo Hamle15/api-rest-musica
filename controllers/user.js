@@ -155,9 +155,40 @@ const login = (req, res) => {
     });
 };
 
+const profile = (req, res) => {
+  // Take id from the url
+  const id = req.params.id;
+
+  // Look data porfile
+  User.findById(id)
+    .select("-__v")
+    .then((userProfile) => {
+      if (!userProfile) {
+        return res.status(404).send({
+          status: "error",
+          message: "The user did not exist",
+        });
+      }
+
+      // Return result
+      return res.status(200).send({
+        status: "succes",
+        message: "path profile",
+        user: userProfile,
+      });
+    })
+    .catch((error) => {
+      return res.status(404).send({
+        status: "error",
+        message: "The user did not exist",
+      });
+    });
+};
+
 // Export accions
 module.exports = {
   prueba,
   register,
   login,
+  profile,
 };
