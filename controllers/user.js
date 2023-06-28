@@ -48,7 +48,7 @@ const register = (req, res) => {
 
   // Control duplicate users
   User.find({
-    $or: [{ email: params.email }, { nick: params.nick.toLowerCase() }],
+    $or: [{ email: params.email }, { nick: params.nick }],
   }).then(async (user) => {
     if (user && user.length >= 1) {
       return res.status(409).send({
@@ -173,7 +173,7 @@ const profile = (req, res) => {
       // Return result
       return res.status(200).send({
         status: "succes",
-        message: "path profile",
+        message: "Profile",
         user: userProfile,
       });
     })
@@ -185,10 +185,86 @@ const profile = (req, res) => {
     });
 };
 
+const update = (req, res) => {
+  // Take the info of the user identify
+  let userIdentidy = req.user;
+  let userUpdate = req.body;
+  let nick = userUpdate.nick;
+  console.log(nick, "holaaaaa");
+  // Data to update
+  User.find({
+    $or: [{ email: userUpdate.email }, { nick: userUpdate.nick }],
+  })
+    .then(async (users) => {
+      if (!users) {
+        return res.status(500).send({
+          status: "error",
+          message: "Internal",
+        });
+      }
+      // Check the user exist and i if i am not
+      let userIsset = false;
+      users.forEach((user) => {
+        if (user && user._id != userIdentidy.id) userIsset = true;
+      });
+      // If exist return a res
+      if (userIsset == true) {
+        return res.status(409).send({
+          status: "succes",
+          message: "The user alredy exist",
+        });
+      }
+
+      // Encrypt password
+      if (userUpdate.password) {
+        let pdw = await bcrypt.hash(userUpdate.password, 10);
+        userUpdate.password = pdw;
+      } else {
+        delete userUpdate.password;
+      }
+
+      try {
+        // Look user and update
+        let usertoUpdate = await User.findByIdAndUpdate(
+          { _id: userIdentidy.id },
+          userUpdate,
+          { new: true }
+        );
+
+        if (!userUpdate) {
+          return res.status(500).send({
+            status: "error",
+            message: "Internal Error",
+            error: error.message,
+          });
+        }
+
+        return res.status(200).send({
+          status: "succes",
+          user: usertoUpdate,
+        });
+      } catch (error) {
+        return res.status(500).send({
+          status: "error",
+          message: "Internal",
+          error: error.message,
+        });
+      }
+    })
+    .catch((error) => {
+      return res.status(500).send({
+        status: "error",
+        message: "Internal",
+        error: error.message,
+      });
+    });
+};
+
 // Export accions
 module.exports = {
   prueba,
   register,
   login,
   profile,
+  update,
 };
