@@ -12,5 +12,7 @@ const ArtistController = require("../controllers/artist");
 router.get("/test-artist", ArtistController.prueba);
 router.post("/save", check.auth, ArtistController.save);
 router.get("/one/:id", check.auth, ArtistController.one);
+router.get("/list/:page?", check.auth, ArtistController.list);
+router.put("/update/:id", check.auth, ArtistController.update);
 // Export routes
 module.exports = router;
