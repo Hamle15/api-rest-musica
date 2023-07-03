@@ -1,6 +1,9 @@
 // Imports
 const Artist = require("../models/Artist");
 const mongoosePaguination = require("mongoose-pagination");
+const path = require("path");
+const fs = require("fs");
+
 // Test accion
 const prueba = (req, res) => {
   return res.status(200).send({
@@ -156,6 +159,126 @@ const update = (req, res) => {
     });
 };
 
+const remove = async (req, res) => {
+  // Take Id of the artist from the url
+  const artistId = req.params.id;
+  try {
+    // Look the artist and deleted
+    const artistRemoved = await Artist.findByIdAndDelete(artistId);
+    if (!artistRemoved) {
+      return res.status(404).send({
+        status: "error",
+        message: "Artist not finded",
+      });
+    }
+
+    // Remove of albums
+
+    // Remove songs
+
+    // Return result
+    return res.status(200).send({
+      status: "succes",
+      message: "remove artits ",
+      artistRemoved,
+    });
+  } catch (error) {
+    return res.status(404).send({
+      status: "error",
+      message: "Artist not finded",
+    });
+  }
+};
+
+const upload = (req, res) => {
+  // Take artits id
+  let artistId = req.params.id;
+  // Take the img and check if exist
+  if (!req.file) {
+    return res.status(404).send({
+      status: "error",
+      message: "The peticion do not include the img",
+    });
+  }
+
+  // Take the name of the archive
+  let image = req.file.originalname;
+
+  // Take the info of the img
+  const imageSplit = image.split(".");
+
+  const extension = path.extname(image).toLowerCase();
+
+  // Check the extension
+  if (
+    extension != ".png" &&
+    extension != ".jpg" &&
+    extension != ".jpeg" &&
+    extension != ".gif"
+  ) {
+    // Delete Image
+    const filePath = req.file.path;
+    const fileDelete = fs.unlinkSync(filePath);
+
+    // Return res negative
+    return res.status(406).send({
+      status: "error",
+      message: "The extension of the img is not valid",
+    });
+  }
+  // Save the img in bd
+  Artist.findByIdAndUpdate(
+    { _id: artistId },
+    { image: req.file.filename },
+    { new: true }
+  )
+    .then((artistUpdate) => {
+      if (!artistUpdate) {
+        return res.status(500).send({
+          status: "error",
+          message: "error in the upload",
+        });
+      }
+      return res.status(200).send({
+        status: "succes",
+        artist: artistUpdate,
+        file: req.file,
+      });
+    })
+    .catch((error) => {
+      return res.status(500).send({
+        status: "error",
+        message: "error in the upload",
+      });
+    });
+};
+
+const image = (req, res) => {
+  // Take params url
+  const file = req.params.file;
+
+  // Mont the path
+  const filePath = "./uploads/artists/" + file;
+
+  // Check if the img exist
+  fs.stat(filePath, (error, exist) => {
+    if (file == "default.png") {
+      return res.status(404).send({
+        status: "error",
+        message: "Is the default img",
+      });
+    }
+    if (!exist || error) {
+      return res.status(404).send({
+        status: "error",
+        message: "the img do not exist",
+      });
+    }
+    // Return file
+    return res.sendFile(path.resolve(filePath));
+  });
+};
+
 // Export accions
 module.exports = {
   prueba,
@@ -163,4 +286,7 @@ module.exports = {
   one,
   list,
   update,
+  remove,
+  upload,
+  image,
 };

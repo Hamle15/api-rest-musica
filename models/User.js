@@ -22,6 +22,7 @@ const UserSchema = Schema({
   role: {
     type: String,
     default: "role_user",
+    enum: ["role_user", "role_admin"], // This is for verify that the only can be allowed this type of role
     select: false,
   },
   image: {
