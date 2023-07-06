@@ -3,6 +3,19 @@ const express = require("express");
 const check = require("../middlewares/auth");
 const { authRole } = require("../middlewares/authRole");
 
+// Configuaracion of upload
+const multer = require("multer");
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "./uploads/albums/");
+  },
+  filename: (req, file, cb) => {
+    cb(null, "album-" + Date.now() + "-" + file.originalname);
+  },
+});
+
+const uploads = multer({ storage });
 // Carge router
 const router = express.Router();
 
@@ -29,6 +42,20 @@ router.get(
   authRole(["role_admin"]),
   AlbumController.list
 );
+
+router.put(
+  "/update/:id",
+  check.auth,
+  authRole(["role_admin"]),
+  AlbumController.update
+);
+
+router.post(
+  "/upload/:id",
+  [check.auth, uploads.single("file0")], // This is goin to be the name of the field of the img
+  AlbumController.upload
+);
+router.get("/image/:file", AlbumController.image);
 
 // Export routes
 module.exports = router;

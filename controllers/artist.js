@@ -166,26 +166,28 @@ const remove = async (req, res) => {
   const artistId = req.params.id;
   try {
     // Look the artist and deleted
-    const artistRemoved = await Artist.findByIdAndDelete(artistId);
-    const albumRemoved = await Album.find({ artist: artistId }).deleteMany();
+    // const artistRemoved = await Artist.findByIdAndDelete(artistId);
+    const albumRemoved = await Album.find({ artist: artistId });
+    albumRemoved.map((album) => {
+      album.remove();
+    });
+
     // ¿ Y SI HAY MUCHOS ALBUMS ?
-    const songRemoved = await Song.find({
-      album: albumRemoved._id,
-    }).deleteMany();
-    if (!artistRemoved) {
-      return res.status(404).send({
-        status: "error",
-        message: "Artist not finded",
-      });
-    }
+    // const songRemoved = await Song.find({
+    //   album: albumRemoved._id,
+    // }).deleteMany();
+    // if (!artistRemoved) {
+    //   return res.status(404).send({
+    //     status: "error",
+    //     message: "Artist not finded",
+    //   });
+    // }
 
     // Return result
     return res.status(200).send({
       status: "succes",
       message: "remove artits ",
-      artistRemoved,
       albumRemoved,
-      songRemoved,
     });
   } catch (error) {
     return res.status(404).send({

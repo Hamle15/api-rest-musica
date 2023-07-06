@@ -1,5 +1,11 @@
 // Imports
 const Album = require("../models/Album");
+const Artist = require("../models/Artist");
+const path = require("path");
+const fs = require("fs");
+
+// Helpers
+const { updateAlbum } = require("../helpers/albumHelper");
 
 // Test accion
 const prueba = (req, res) => {
@@ -22,29 +28,46 @@ const save = (req, res) => {
     });
   }
 
-  // Create Obj
-  let album = new Album(params);
-
-  // Save the obj
-  album
-    .save()
-    .then((albumStored) => {
-      if (!albumStored) {
-        return res.status(200).send({
-          status: "succes",
-          message: "path save album",
-          album,
+  Artist.findById({ _id: params.artist })
+    .then((artistFinded) => {
+      if (!artistFinded) {
+        return res.status(404).send({
+          status: "error",
+          message: "The user do not exist",
         });
       }
-      return res.status(200).send({
-        status: "succes",
-        albumStored,
-      });
+
+      // Create Obj
+      let album = new Album(params);
+
+      // Save the obj
+      album
+        .save()
+        .then((albumStored) => {
+          if (!albumStored) {
+            return res.status(200).send({
+              status: "succes",
+              message: "path save album",
+              album,
+            });
+          }
+          return res.status(200).send({
+            status: "succes",
+            albumStored,
+          });
+        })
+        .catch((error) => {
+          return res.status(500).send({
+            status: "error",
+            message: "Could not save the album",
+            error: error.message,
+          });
+        });
     })
     .catch((error) => {
-      return res.status(500).send({
+      return req.status(404).send({
         status: "error",
-        message: "Could not save the album",
+        message: "The user do not exist",
       });
     });
 };
@@ -96,7 +119,138 @@ const list = (req, res) => {
         status: "succes",
         albums,
       });
+    })
+    .catch((error) => {
+      return res.status(404).send({
+        status: "error",
+        message: "The artist do not exist",
+      });
     });
+};
+
+const update = (req, res) => {
+  // Take the params from the url
+  const idAlbum = req.params.id;
+
+  // Take data from the body
+  const params = req.body;
+  if (params.type) {
+    if (params.type !== "Single" && params.type !== "Album") {
+      return res.status(400).send({
+        status: "error",
+        message: "The field have to be a type Single or Album",
+      });
+    }
+  }
+
+  // Check if an artist ID is provided
+  if (params.artist) {
+    Artist.findById(params.artist)
+      .then((artist) => {
+        if (!artist) {
+          return res.status(404).send({
+            status: "error",
+            message: "The artist does not exist",
+          });
+        }
+        updateAlbum(idAlbum, params, res);
+      })
+      .catch((error) => {
+        return res.status(500).send({
+          status: "error",
+          message: "Error finding the artist",
+          error: error.message,
+        });
+      });
+  } else {
+    updateAlbum(idAlbum, params, res);
+  }
+};
+
+const upload = (req, res) => {
+  // Take artits id
+  let albumId = req.params.id;
+  // Take the img and check if exist
+  if (!req.file) {
+    return res.status(404).send({
+      status: "error",
+      message: "The peticion do not include the img",
+    });
+  }
+
+  // Take the name of the archive
+  let image = req.file.originalname;
+
+  const extension = path.extname(image).toLowerCase();
+
+  // Check the extension
+  if (
+    extension != ".png" &&
+    extension != ".jpg" &&
+    extension != ".jpeg" &&
+    extension != ".gif"
+  ) {
+    // Delete Image
+    const filePath = req.file.path;
+    const fileDelete = fs.unlinkSync(filePath);
+
+    // Return res negative
+    return res.status(406).send({
+      status: "error",
+      message: "The extension of the img is not valid",
+    });
+  }
+  // Save the img in bd
+  Album.findByIdAndUpdate(
+    { _id: albumId },
+    { image: req.file.filename },
+    { new: true }
+  )
+    .then((albumUpdate) => {
+      if (!albumUpdate) {
+        return res.status(404).send({
+          status: "error",
+          message: "The album do not exist",
+        });
+      }
+      return res.status(200).send({
+        status: "succes",
+        album: albumUpdate,
+        file: req.file,
+      });
+    })
+    .catch((error) => {
+      return res.status(404).send({
+        status: "error",
+        message: "The album do not exist",
+      });
+    });
+};
+
+const image = (req, res) => {
+  // Take params url
+  const file = req.params.file;
+
+  // Mont the path
+  const filePath = "./uploads/albums/" + file;
+
+  // Check if the img exist
+  fs.stat(filePath, (error, exist) => {
+    if (file == "default.png") {
+      return res.status(200).send({
+        status: "error",
+        message: "Is the default img",
+      });
+    }
+    if (!exist || error) {
+      return res.status(404).send({
+        status: "error",
+        message: "the img do not exist",
+      });
+    }
+    // Return file
+    return res.sendFile(path.resolve(filePath));
+  });
 };
 
 // Export accions
@@ -105,4 +259,7 @@ module.exports = {
   save,
   one,
   list,
+  update,
+  upload,
+  image,
 };

@@ -4,6 +4,7 @@ const SongSchema = Schema({
   album: {
     type: Schema.ObjectId,
     ref: "Album",
+    required: true,
   },
   track: {
     type: Number,
@@ -19,7 +20,7 @@ const SongSchema = Schema({
   },
   file: {
     type: String,
-    required: true,
+    default: "default.mp3",
   },
   created_at: {
     type: Date,
