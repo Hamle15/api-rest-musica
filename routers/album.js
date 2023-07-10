@@ -57,5 +57,12 @@ router.post(
 );
 router.get("/image/:file", AlbumController.image);
 
+router.delete(
+  "/remove/:id",
+  check.auth,
+  authRole(["role_admin"]),
+  AlbumController.remove
+);
+
 // Export routes
 module.exports = router;

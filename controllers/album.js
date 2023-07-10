@@ -1,6 +1,7 @@
 // Imports
 const Album = require("../models/Album");
 const Artist = require("../models/Artist");
+const Song = require("../models/Song");
 const path = require("path");
 const fs = require("fs");
 
@@ -253,6 +254,39 @@ const image = (req, res) => {
   });
 };
 
+const remove = async (req, res) => {
+  // Take album Id
+  const albumId = req.params.id;
+
+  // Consult to try to delete the album
+  try {
+    const albumFinded = await Album.findById(albumId);
+    const albumRemoved = await Album.findById(albumId).deleteOne();
+
+    if (!albumFinded) {
+      return res.status(404).send({
+        status: "error",
+        message: "Album do not exist",
+      });
+    }
+
+    const songsRemoved = await Song.find({ album: albumId }).deleteMany();
+
+    return res.status(200).send({
+      status: "success",
+      message: "Artist removed",
+      albumRemoved,
+      songsRemoved,
+    });
+  } catch (error) {
+    return res.status(404).send({
+      status: "error",
+      message: "Artist not found",
+      error: error.message,
+    });
+  }
+};
+
 // Export accions
 module.exports = {
   prueba,
@@ -262,4 +296,5 @@ module.exports = {
   update,
   upload,
   image,
+  remove,
 };
