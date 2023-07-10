@@ -162,37 +162,34 @@ const update = (req, res) => {
 };
 
 const remove = async (req, res) => {
-  // Take Id of the artist from the url
   const artistId = req.params.id;
   try {
-    // Look the artist and deleted
-    // const artistRemoved = await Artist.findByIdAndDelete(artistId);
-    const albumRemoved = await Album.find({ artist: artistId });
-    albumRemoved.map((album) => {
-      album.remove();
+    const artistRemoved = await Artist.findByIdAndDelete(artistId);
+    if (!artistRemoved) {
+      return res.status(404).send({
+        status: "error",
+        message: "Artist not found",
+      });
+    }
+
+    const albums = await Album.find({ artist: artistId });
+
+    const deleteAlbumsPromises = albums.map(async (album) => {
+      await Song.deleteMany({ album: album._id });
+      await album.deleteOne();
     });
 
-    // ¿ Y SI HAY MUCHOS ALBUMS ?
-    // const songRemoved = await Song.find({
-    //   album: albumRemoved._id,
-    // }).deleteMany();
-    // if (!artistRemoved) {
-    //   return res.status(404).send({
-    //     status: "error",
-    //     message: "Artist not finded",
-    //   });
-    // }
+    await Promise.all(deleteAlbumsPromises);
 
-    // Return result
     return res.status(200).send({
-      status: "succes",
-      message: "remove artits ",
-      albumRemoved,
+      status: "success",
+      message: "Artist removed",
+      artistRemoved,
     });
   } catch (error) {
     return res.status(404).send({
       status: "error",
-      message: "Artist not finded",
+      message: "Artist not found",
       error: error.message,
     });
   }
